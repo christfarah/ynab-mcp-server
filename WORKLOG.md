@@ -1,5 +1,57 @@
 # Worklog
 
+## 2026-09-08 - Unblocked non-browser MCP clients at the Cloudflare edge
+
+**What changed**: A third-party client (Meta's Muse) could not reach
+`ynab.amesvt.com/mcp`. The reported cause was an IP or Origin problem; it was
+neither. Cloudflare's zone-level Browser Integrity Check bans the
+`Python-urllib/*` User-Agent and returns `error code: 1010` before any Worker
+code runs. The block was zone-wide and method-agnostic, so discovery,
+`/register`, `/token`, `/mcp` and `/sse` were all unreachable to that client
+while `curl` and browser UAs sailed through. Added a WAF custom rule (action
+Skip, Browser Integrity Check the only skipped component) scoped to the
+machine-to-machine paths, leaving `/` and `/authorize` protected, plus a
+rate-limiting rule on the unauthenticated `/register` DCR endpoint.
+
+Extended the same pair to every self-hosted MCP connector: the six amesvt.com
+hosts (ynab, skills, wave, parcel, lytho, workspace) share one skip rule and one
+rate limit; `mcp.applecore.app` is a separate zone with its own matching pair,
+scoped to its `/oauth/*` layout.
+
+Separately, `MCP_ALLOWED_ORIGINS` listed `https://claude.ai` but not
+`https://claude.com`, so browser requests from Claude's newer domain got 403
+`invalid_origin`. Commit `027e06c` adds it. Documented both the edge
+prerequisite and the origin rule in `docs/hosted-oauth-connector.md`.
+
+**Decisions made**: Scoped the skip by path rather than disabling Browser
+Integrity Check zone-wide, so the browser consent flow keeps its protection.
+Skipped only the BIC component, never the broad "all managed rules" or Super Bot
+Fight Mode options. Set the shared amesvt.com rate limit to 10 per 10s rather
+than 5, because one counter now spans six hosts and a client registering across
+several in sequence could otherwise trip it. The Worker's Origin handling needed
+no change — it already returns early on a missing `Origin`, per the MCP spec.
+
+**Verification**: Reproduced the block by varying only the User-Agent, then
+confirmed after each rule that all seven `/mcp` endpoints reach the app under
+`Python-urllib/3.11` while `/authorize` and the site roots still return 1010 for
+that UA and 200 for a real browser. Rate limits confirmed behaviourally: ten
+requests then 429, with recovery after the window. Worker tests 25/25 before the
+deploy; `wrangler deploy` succeeded and the `claude.com` origin verified live
+after propagation.
+
+**Left off at**: All seven connectors reachable and verified. Repo clean, commit
+pushed.
+
+**Open questions**: NEW - the amesvt.com rate-limit rule is still named "Rate
+limit YNAB MCP dynamic client registration" although it now covers six hosts;
+the rename would not commit through the dashboard and needs doing by hand. NEW -
+Cloudflare's free plan caps the rate-limit period and mitigation at 10 seconds
+and allows one such rule per zone, so per-connector tuning needs a paid plan.
+Still open - Dependabot reports 12 vulnerabilities (8 high, 4 moderate) on the
+default branch, surfaced during the push and not addressed here.
+
+---
+
 ## 2026-08-27 - Released 5.2.0 and fixed the bundle build that blocked it
 
 **What changed**: Thirty-one commits had accumulated since v5.1.1 with no
