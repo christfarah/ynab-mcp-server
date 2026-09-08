@@ -21,8 +21,6 @@ const pluginManifestPaths = [
 ];
 
 const marketplacePaths = [
-  ".claude-plugin/marketplace.json",
-  ".agents/plugins/marketplace.json",
   ".hermes-plugin/marketplace.json",
   ".antigravity-plugin/marketplace.json",
 ];

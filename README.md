@@ -50,7 +50,7 @@ All monetary values are automatically converted between dollars and YNAB's inter
 
 ## Quick Start
 
-This package stands on its own as a stdio MCP server. You can install it from this repo as a standalone Claude Code, Codex, Hermes, or Antigravity plugin, or register the npm package directly and let your MCP client launch it on demand. You do not need the older `ames-connectors` marketplace for YNAB.
+This package stands on its own as a stdio MCP server. You can register the npm package directly and let your MCP client launch it on demand. Plugin packages are also provided for separately managed Claude Code and Codex marketplaces, plus the included Hermes and Antigravity catalogs. You do not need the older `ames-connectors` marketplace for YNAB.
 
 The npm package is the local, owner-run option. It uses a personal access token because the account owner runs the process. The same repository also powers a hosted OAuth connector for clients that accept remote MCP URLs.
 
@@ -90,19 +90,7 @@ reindexed after the MCP metadata changes.
 
 ### Install as a Plugin
 
-Install the standalone marketplace from this repository:
-
-```bash
-/plugin marketplace add oliverames/ynab-mcp-server
-/plugin install ynab-mcp-server@ynab-mcp-server
-```
-
-Install the same marketplace in Codex:
-
-```bash
-codex plugin marketplace add oliverames/ynab-mcp-server
-codex plugin add ynab-mcp-server@ynab-mcp-server
-```
+Claude and Codex plugin packages remain available for distribution through a separately managed marketplace. This repository no longer supplies their root catalogs. For direct use, register the npm package with your MCP client.
 
 The plugin starts `@oliverames/mcp-server-for-ynab@latest` and preserves the prior `ames-ynab` connector behavior by setting `YNAB_ALLOW_WRITES=1`. Direct MCP registration remains read-only unless you explicitly enable writes.
 
@@ -112,8 +100,8 @@ The repository also carries host-specific marketplace and plugin manifests for H
 
 | Host | Marketplace | Plugin manifest | MCP config |
 |---|---|---|---|
-| Claude Code | `.claude-plugin/marketplace.json` | `.claude-plugin/plugin.json` | `.mcp.json` |
-| Codex | `.agents/plugins/marketplace.json` | `codex/.codex-plugin/plugin.json` | `codex/.codex-plugin/mcp.json` |
+| Claude Code | Separately managed | `.claude-plugin/plugin.json` | `.mcp.json` |
+| Codex | Separately managed | `codex/.codex-plugin/plugin.json` | `codex/.codex-plugin/mcp.json` |
 | Hermes | `.hermes-plugin/marketplace.json` | `.hermes-plugin/plugin.json` | `.hermes-plugin/mcp.json` |
 | Antigravity | `.antigravity-plugin/marketplace.json` | `.antigravity-plugin/plugin.json` | `.antigravity-plugin/mcp_config.json` |
 
