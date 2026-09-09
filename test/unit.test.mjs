@@ -309,6 +309,8 @@ test("withWriteGateDescription appends the gate note exactly once", () => {
 });
 
 test("verifyBulkTransactionUpdates verifies a batch with a single list refetch", async (t) => {
+  // Freeze the window calculation only, leaving the shared rate limiter clock real.
+  t.mock.method(Date, "now", () => Date.parse("2026-06-15T12:00:00Z"), { times: 1 });
   const requests = [];
   const listTransactions = [
     { id: "t1", date: "2026-06-01", amount: -10000, approved: true, deleted: false },
@@ -343,6 +345,8 @@ test("verifyBulkTransactionUpdates verifies a batch with a single list refetch",
 });
 
 test("verifyBulkTransactionUpdates bounds the refetch when no row carries a date", async (t) => {
+  // Freeze the window calculation only, leaving the shared rate limiter clock real.
+  t.mock.method(Date, "now", () => Date.parse("2026-09-09T12:00:00Z"), { times: 1 });
   const requests = [];
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
@@ -363,7 +367,39 @@ test("verifyBulkTransactionUpdates bounds the refetch when no row carries a date
 
   assert.equal(verification.failed.length, 0);
   assert.equal(requests.length, 1);
-  assert.match(requests[0], /\/plans\/plan-1\/transactions\?since_date=\d{4}-\d{2}-\d{2}/);
+  assert.match(requests[0], /\/plans\/plan-1\/transactions\?since_date=2026-06-11/);
+});
+
+test("verifyBulkTransactionUpdates clamps old rows and refetches only missing rows", async (t) => {
+  // Freeze the window calculation only, leaving the shared rate limiter clock real.
+  t.mock.method(Date, "now", () => Date.parse("2026-09-09T12:00:00Z"), { times: 1 });
+  const rows = [
+    { id: "old", date: "2026-06-10", approved: true, amount: -1000, deleted: false },
+    { id: "edge", date: "2026-06-11", approved: true, amount: -2000, deleted: false },
+    { id: "recent", date: "2026-06-12", approved: true, amount: -3000, deleted: false },
+  ];
+  const requests = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    const parsed = new URL(url);
+    requests.push(parsed.pathname + parsed.search);
+    const data = parsed.pathname.endsWith("/transactions/old")
+      ? { transaction: { ...rows[0], subtransactions: [] } }
+      : { transactions: rows.filter(row => row.date >= parsed.searchParams.get("since_date")) };
+    return new Response(JSON.stringify({ data }), {
+      status: 200, headers: { "content-type": "application/json" },
+    });
+  });
+  const { verification, verified } = await verifyBulkTransactionUpdates(
+    "plan-1", rows.map(({ id }) => ({ id, approved: true })), rows,
+  );
+  assert.equal(verification.checked, 3);
+  assert.deepEqual(verification.failed, []);
+  assert.deepEqual(verification.retried, []);
+  assert.equal(verified.length, 3);
+  assert.deepEqual(requests, [
+    "/v1/plans/plan-1/transactions?since_date=2026-06-11",
+    "/v1/plans/plan-1/transactions/old",
+  ]);
 });
 
 test("parseToolExecuteInput validates against the target tool schema", () => {
