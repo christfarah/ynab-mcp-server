@@ -9,6 +9,23 @@ permissions:
   contents: read
 
 jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Docker image
+        run: docker build --tag ynab-mcp-ci .
+      - name: Docker MCP smoke (offline, no credentials)
+        # Mount only the test harness so the server and dependencies come from the image.
+        run: |
+          docker run --rm --network none \
+            --env YNAB_DISABLE_AGENT_CONFIG_FALLBACK=1 \
+            --env YNAB_ALLOW_WRITES=0 \
+            --mount "type=bind,source=${GITHUB_WORKSPACE}/scripts,target=/app/scripts,readonly" \
+            --entrypoint node \
+            ynab-mcp-ci scripts/smoke-list-tools.mjs
+
   security:
     runs-on: ubuntu-latest
     steps:
