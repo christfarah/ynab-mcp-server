@@ -1,19 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ynab-mcp-connector",
+  "name": "ynab-mcp",
   "main": "src/index.js",
-  // The public custom domain below is the only supported endpoint.
-  "workers_dev": false,
+  // Private deployment on the account's free workers.dev subdomain.
+  "workers_dev": true,
+  "preview_urls": false,
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
-  // Custom domain on the amesvt.com zone: Cloudflare creates the DNS record
-  // and certificate automatically at deploy time.
-  "routes": [{ "pattern": "ynab.amesvt.com", "custom_domain": true }],
+  // Build-time origin for OAuth resource metadata, server icons, and pages
+  // (src/brand-assets.js). Must equal CONNECTOR_BASE_URL below.
+  "define": {
+    "__CONNECTOR_ORIGIN__": "\"https://ynab-mcp.christfarah99.workers.dev\""
+  },
   "kv_namespaces": [
     // OAuthProvider grant/client/token storage (props encrypted; tokens hashed),
     // plus this connector's encrypted YNAB token records and undo journals.
-    // The id is filled in after `wrangler kv namespace create OAUTH_KV`.
-    { "binding": "OAUTH_KV", "id": "eabb2d32169f4fa68e8d58a61cd45190" }
+    { "binding": "OAUTH_KV", "id": "2ee5dbdff3334b78b2d8defc2e4fc2e4" }
   ],
   "durable_objects": {
     "bindings": [
@@ -26,12 +28,19 @@
     { "tag": "v1", "new_sqlite_classes": ["YnabMCP"] },
     { "tag": "v2", "new_sqlite_classes": ["OAuthTransientState"] }
   ],
+  "ratelimits": [
+    // Bounds dynamic client registration per IP (src/register-rate-limit.js).
+    { "name": "REGISTER_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
+  ],
   "vars": {
-    // Never let the shared stdio module autostart or read local config in the Worker.
-    "CONNECTOR_BASE_URL": "https://ynab.amesvt.com",
+    "CONNECTOR_BASE_URL": "https://ynab-mcp.christfarah99.workers.dev",
     // Explicit browser origins allowed to call the MCP transport. Native and
     // server-to-server clients omit Origin and remain supported.
     "MCP_ALLOWED_ORIGINS": "https://chatgpt.com,https://claude.ai,https://claude.com,https://chat.mistral.ai,https://lechat.mistral.ai",
+    // Only these YNAB accounts may complete the connector OAuth flow
+    // (src/private-access.js). Not a credential: an opaque YNAB user id.
+    "ALLOWED_YNAB_USER_IDS": "b9fda766-ed9b-45f3-bef0-7058a2443d6f",
+    // Never let the shared stdio module autostart or read local config in the Worker.
     "YNAB_MCP_NO_AUTOSTART": "1",
     "YNAB_DISABLE_AGENT_CONFIG_FALLBACK": "1"
   }

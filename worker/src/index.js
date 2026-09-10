@@ -6,6 +6,7 @@
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { CONNECTOR_RESOURCE_METADATA } from "./brand-assets.js";
 import { rejectUntrustedMcpOrigin } from "./mcp-origin.js";
+import { rateLimitRegistration } from "./register-rate-limit.js";
 import { applyTransportSecurityHeaders } from "./response-security.js";
 import { YnabMCP } from "./ynab-mcp.js";
 import { OAuthTransientState } from "./oauth-transient-state.js";
@@ -31,7 +32,8 @@ const oauthProvider = new OAuthProvider({
 
 export default {
   async fetch(request, env, ctx) {
-    const rejection = rejectUntrustedMcpOrigin(request, env);
+    const rejection = rejectUntrustedMcpOrigin(request, env)
+      ?? await rateLimitRegistration(request, env);
     const response = rejection ?? await oauthProvider.fetch(request, env, ctx);
     return applyTransportSecurityHeaders(request, response);
   },

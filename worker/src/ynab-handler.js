@@ -20,6 +20,7 @@ import {
   decryptStoredJson,
 } from "./ynab-oauth.js";
 import { putTransientState, consumeTransientState } from "./transient-state.js";
+import { isAllowedYnabUser } from "./private-access.js";
 import {
   CONNECTOR_APPLE_TOUCH_ICON_PNG,
   CONNECTOR_APPLE_TOUCH_ICON_PNG_SHA256,
@@ -415,6 +416,10 @@ app.get("/callback", async (c) => {
     ynabUserId = await fetchYnabUserId(tokens.accessToken);
   } catch (e) {
     return html(c, errorPage(`Authorized with YNAB but could not read the user profile (${e.message}).`), 502);
+  }
+  // Refuse before anything is stored: no final-consent record, no token record.
+  if (!isAllowedYnabUser(c.env, ynabUserId)) {
+    return html(c, errorPage("This connector is private. Your YNAB account is not permitted to use it."), 403);
   }
 
   const finalId = randomToken(24);

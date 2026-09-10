@@ -1,6 +1,8 @@
 // Static page bodies for the connector. Every page carries non-affiliation
 // language per docs/hosted-oauth-connector.md and YNAB's naming guidance.
 
+import { CONNECTOR_ICON_PNG_URL, CONNECTOR_MCP_URL } from "./brand-assets.js";
+
 const NON_AFFILIATION = "MCP Server for YNAB is an independent open-source project by Oliver Ames. We are not affiliated, associated, or in any way officially connected with YNAB or any of its subsidiaries or affiliates. The official YNAB website can be found at <a href=\"https://www.ynab.com\">www.ynab.com</a>. The names YNAB and You Need A Budget, as well as related names, tradenames, marks, trademarks, emblems, and images are registered trademarks of YNAB.";
 
 export function escapeHtml(value) {
@@ -24,7 +26,7 @@ function layout(title, body) {
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta property="og:image" content="https://ynab.amesvt.com/assets/icon.png">
+<meta property="og:image" content="${CONNECTOR_ICON_PNG_URL}">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1024">
 <meta property="og:image:height" content="1024">
@@ -52,7 +54,7 @@ export function landingPage() {
 <h1><span class="accent">MCP Server for YNAB</span>: remote connector</h1>
 <div class="card">
 <p>This is a remote <a href="https://modelcontextprotocol.io">Model Context Protocol</a> endpoint for YNAB budgets. Add it to an MCP-capable AI client and authorize with your own YNAB account. There is no personal access token to copy anywhere.</p>
-<p><strong>Endpoint:</strong> <code>https://ynab.amesvt.com/mcp</code> (streamable HTTP; legacy SSE at <code>/sse</code>)</p>
+<p><strong>Endpoint:</strong> <code>${CONNECTOR_MCP_URL}</code> (streamable HTTP; legacy SSE at <code>/sse</code>)</p>
 <p>Your AI client will walk you through YNAB's own sign-in and consent. You choose at consent time whether the connection can write to your budget or stay read-only.</p>
 <p class="muted">Source code, tool reference, and the local stdio version: <a href="https://github.com/oliverames/ynab-mcp-server">oliverames/ynab-mcp-server</a>.</p>
 </div>`);
